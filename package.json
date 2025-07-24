@@ -1,0 +1,15 @@
+{
+  "name": "ambimed-hive-lambda",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "lambda/extractLatestExam.mjs",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/credential-providers": "^3.537.0",
+    "@aws-sdk/rds-signer": "^3.537.0",
+    "@aws-sdk/client-s3": "^3.537.0",
+    "@smithy/protocol-http": "^5.1.2",
+    "@smithy/types": "^4.3.1",
+    "mysql2": "^3.14.2"
+  }
+}
