@@ -68,8 +68,11 @@ LEFT JOIN risks                r   ON r.id        = dr.risk_id
 LEFT JOIN examination_details  ed  ON ed.examination_id = le.id
 LEFT JOIN tests                t   ON t.id              = ed.test_id
 
-/* keep only the latest exam per employee */
+/* ---------- keep only the latest exam per employee ------------------------ */
 WHERE     le.rn = 1
+
+/* ---------- only active assumptions -------------------------------------- */
+AND       a.end_date IS NULL 
 
 GROUP BY  p.id;
 

@@ -25,6 +25,11 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3
 import { createHash } from "node:crypto";
 
 // ────────────────────────────────────────────────────────────────────────────────
+// Maximum number of changed rows returned per invocation.
+// Adjust here to change the window size everywhere consistently.
+const CHANGESET_MAX_SIZE = 20;
+
+// ────────────────────────────────────────────────────────────────────────────────
 // Read the SQL file once at cold-start and keep it cached.
 // Using URL keeps it working when the file is bundled.
 /** @type {Promise<string>} */
@@ -177,20 +182,23 @@ export const handler = async (_event, _context) => {
       }
     }
 
-    let changedRowsWithHash = previousHashes.size
+    const allChangedRowsWithHash = previousHashes.size
       ? rowsWithHash.filter((row) => !previousHashes.has(row._hash))
       : rowsWithHash;
 
+    const totalRows = rowsWithHash.length;
+    const totalChangedRows = allChangedRowsWithHash.length;
+
     console.log("Diff statistics before limit", {
       previousHashes: previousHashes.size,
-      totalCurrent: rowsWithHash.length,
-      changedOrNew: changedRowsWithHash.length,
+      totalCurrent: totalRows,
+      changedOrNew: totalChangedRows,
     });
 
-    // Limit to at most 20 rows to act as a cursor window.
-    changedRowsWithHash = changedRowsWithHash.slice(0, 20);
+    // Limit to at most CHANGESET_MAX_SIZE rows to act as a cursor window.
+    const changedRowsWithHash = allChangedRowsWithHash.slice(0, CHANGESET_MAX_SIZE);
 
-    console.log("After applying 20-row limit", {
+    console.log(`After applying ${CHANGESET_MAX_SIZE}-row limit`, {
       willReturn: changedRowsWithHash.length,
     });
 
@@ -219,13 +227,27 @@ export const handler = async (_event, _context) => {
         count: changedRows.length,
         currentVersion,
         comparedTo: compareVersion ?? null,
+        totalRows,
+        totalChangedRows,
+        returnedRows: changedRows.length,
+        limit: CHANGESET_MAX_SIZE,
         result: changedRows,
       };
     }
 
     // No new rows → nothing to store or return.
     console.log("No new rows after diff – returning empty result set.");
-    return { result: [], success: true, count: 0, currentVersion: null, comparedTo: compareVersion ?? null };
+    return {
+      success: true,
+      count: 0,
+      currentVersion: null,
+      comparedTo: compareVersion ?? null,
+      totalRows,
+      totalChangedRows,
+      returnedRows: 0,
+      limit: CHANGESET_MAX_SIZE,
+      result: [],
+    };
   } catch (error) {
     console.error("Error fetching data:", error);
     return { result: [], success: false, count: 0, error: error.message };
