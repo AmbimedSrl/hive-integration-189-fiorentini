@@ -2,6 +2,8 @@
 /*  PARAM                                                                    */
 /* ------------------------------------------------------------------------- */
 -- SET @company_id = 189;           -- <-- company you want to extract (use this when testing locally)
+SET @company_id = 132;           -- <-- sede test
+-- CF: 
 
 /* ------------------------------------------------------------------------- */
 /*  CTE → pick only the most-recent examination done by every employee       */
@@ -34,8 +36,7 @@ SELECT
                  ORDER BY t.description SEPARATOR ', ')    AS integrative_tests,
 
     /*  7  Giudizio di idoneità                           */  le.result                                         AS result,
-    /*  8  Prescrizioni / limitazioni                     */  CONCAT_WS(' / ', le.prescription_to_company,
-                                                                            le.prescription_to_employee) AS prescriptions,
+    /*  8  Prescrizioni / limitazioni                     */  le.prescription_to_company                        AS prescriptions,
     /*  9  Data ultima visita                             */  le.start_date                                     AS last_visit_date,
     /* 10  Scadenza idoneità                              */  le.expiration_date                                AS expiration_date,
 
@@ -73,6 +74,7 @@ WHERE     le.rn = 1
 
 /* ---------- only active assumptions -------------------------------------- */
 AND       a.end_date IS NULL 
+AND       p.fiscal_code IN ('BNCLCU80A01F205T', 'BNCNNA80A41H501R', 'RSSGNN85A01M208I')
 
 GROUP BY  p.id;
 

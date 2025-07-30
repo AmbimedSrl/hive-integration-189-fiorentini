@@ -21,7 +21,11 @@ import { Signer } from "@aws-sdk/rds-signer";
 import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
 import mysql from "mysql2/promise";
 import fs from "node:fs/promises";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { createHash } from "node:crypto";
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -90,7 +94,14 @@ export const handler = async (_event, _context) => {
     EXPORT_BUCKET,
   } = process.env;
 
-  if (!DB_HOST || !DB_NAME || !DB_USER || !DB_PASS || !COMPANY_ID || !EXPORT_BUCKET) {
+  if (
+    !DB_HOST ||
+    !DB_NAME ||
+    !DB_USER ||
+    !DB_PASS ||
+    !COMPANY_ID ||
+    !EXPORT_BUCKET
+  ) {
     throw new Error("Missing required environment variables.");
   }
 
@@ -174,7 +185,9 @@ export const handler = async (_event, _context) => {
         );
       } catch (err) {
         if (err.name === "NoSuchKey" || err.$metadata?.httpStatusCode === 404) {
-          console.log(`Previous version ${compareVersion} not found – returning all rows.`);
+          console.log(
+            `Previous version ${compareVersion} not found – returning all rows.`
+          );
         } else {
           console.error("Error retrieving previous version from S3:", err);
           // Still continue – treat as no previous data.
@@ -188,6 +201,7 @@ export const handler = async (_event, _context) => {
 
     const totalRows = rowsWithHash.length;
     const totalChangedRows = allChangedRowsWithHash.length;
+    const count = Math.min(totalChangedRows, CHANGESET_MAX_SIZE);
 
     console.log("Diff statistics before limit", {
       previousHashes: previousHashes.size,
@@ -196,14 +210,45 @@ export const handler = async (_event, _context) => {
     });
 
     // Limit to at most CHANGESET_MAX_SIZE rows to act as a cursor window.
-    const changedRowsWithHash = allChangedRowsWithHash.slice(0, CHANGESET_MAX_SIZE);
+    const changedRowsWithHash = allChangedRowsWithHash.slice(
+      0,
+      CHANGESET_MAX_SIZE
+    );
 
     console.log(`After applying ${CHANGESET_MAX_SIZE}-row limit`, {
       willReturn: changedRowsWithHash.length,
     });
 
-    // Strip hash before returning to the caller.
-    const changedRows = changedRowsWithHash.map(({ _hash, ...rest }) => rest);
+    const dateOnly = (date) => {
+      if (!date) return null;
+      return new Date(date).toISOString().split("T")[0];
+    };
+    const toGmtIso = (date) => {
+      if (!date) return null;
+      return new Date(
+        new Date(date).getTime() - 2 * 60 * 60 * 1000
+      ).toISOString();
+    };
+
+    // Map the selected fields to the desired response schema and strip the helper hash.
+    const employeeDataList = changedRowsWithHash.map(({ _hash, ...row }) => ({
+      taxIdCode: row.fiscal_code,
+      jobTitle: row.mansione,
+      type: row.tipologia,
+      visitFrequency: row.base_periodicity,
+      riskFactorsEvaluated: row.risk_factors,
+      additionalExaminations: row.integrative_tests,
+      fitnessJudgement: row.result,
+      prescriptionsLimitations: row.prescriptions,
+      lastVisitDateTime: toGmtIso(row.last_visit_date),
+      fitnessExpirationDate: dateOnly(row.expiration_date),
+      immunologicalCoverageStatus: row.immuno_judgement,
+      immunologicalCoverageExpiration: row.immuno_expiration,
+      competentDoctor: row.medico_competente,
+      sentToWorkerDate: dateOnly(row.transmission_to_worker),
+      sentToEmployerDate: dateOnly(row.transmission_to_employer),
+      judgementDate: dateOnly(row.judgement_date),
+    }));
 
     // ── Persist current version to S3 for future comparisons ──────────────────
     if (changedRowsWithHash.length > 0) {
@@ -213,7 +258,10 @@ export const handler = async (_event, _context) => {
         new PutObjectCommand({
           Bucket: EXPORT_BUCKET,
           Key: putKey,
-          Body: JSON.stringify({ version: currentVersion, rows: changedRowsWithHash }),
+          Body: JSON.stringify({
+            version: currentVersion,
+            rows: changedRowsWithHash,
+          }),
           ContentType: "application/json",
         })
       );
@@ -221,32 +269,28 @@ export const handler = async (_event, _context) => {
         etag: putRes.ETag,
       });
 
-      // Directly return the changed rows as JSON.
+      // Return the formatted payload expected by the caller.
       return {
-        success: true,
-        count: changedRows.length,
+        employeeDataList,
         currentVersion,
-        comparedTo: compareVersion ?? null,
+        comparedTo: compareVersion,
+        success: true,
         totalRows,
         totalChangedRows,
-        returnedRows: changedRows.length,
-        limit: CHANGESET_MAX_SIZE,
-        result: changedRows,
+        count,
       };
     }
 
-    // No new rows → nothing to store or return.
+    // No new rows → return an empty list.
     console.log("No new rows after diff – returning empty result set.");
     return {
-      success: true,
-      count: 0,
+      employeeDataList: [],
       currentVersion: null,
-      comparedTo: compareVersion ?? null,
+      comparedTo: compareVersion,
+      success: true,
       totalRows,
       totalChangedRows,
-      returnedRows: 0,
-      limit: CHANGESET_MAX_SIZE,
-      result: [],
+      count,
     };
   } catch (error) {
     console.error("Error fetching data:", error);

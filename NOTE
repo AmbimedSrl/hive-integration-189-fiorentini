@@ -1,0 +1,5 @@
+BNCLCU80A01F205T:
+- manca tetan test, vaccinazioni: tetano
+- se result è idoneo, prescriptions deve essere FORZATO vuoto
+- prescriptions deve contenere prescrizione azienda (e NON lavoratore!)
+- sostituire accertamenti base con "visita medica base"
