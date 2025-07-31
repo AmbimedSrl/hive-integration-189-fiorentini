@@ -1,8 +1,8 @@
 /* ------------------------------------------------------------------------- */
 /*  PARAM                                                                    */
 /* ------------------------------------------------------------------------- */
--- SET @company_id = 189;           -- <-- company you want to extract (use this when testing locally)
-SET @company_id = 132;           -- <-- sede test
+SET @company_id = 189;           -- <-- company you want to extract (use this when testing locally)
+-- SET @company_id = 132;           -- <-- sede test
 -- CF: 
 
 /* ------------------------------------------------------------------------- */
@@ -74,7 +74,7 @@ WHERE     le.rn = 1
 
 /* ---------- only active assumptions -------------------------------------- */
 AND       a.end_date IS NULL 
-AND       p.fiscal_code IN ('BNCLCU80A01F205T', 'BNCNNA80A41H501R', 'RSSGNN85A01M208I')
+-- AND       p.fiscal_code IN ('BNCLCU80A01F205T', 'BNCNNA80A41H501R', 'RSSGNN85A01M208I')
 
 GROUP BY  p.id;
 
