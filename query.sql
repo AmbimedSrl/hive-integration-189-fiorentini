@@ -37,11 +37,11 @@ SELECT
 
     /*  7  Giudizio di idoneità                           */  le.result                                         AS result,
     /*  8  Prescrizioni / limitazioni                     */  le.prescription_to_company                        AS prescriptions,
-    /*  9  Data ultima visita                             */  le.start_date                                     AS last_visit_date,
+    /*  9  Data ultima visita                             */  CONVERT_TZ(le.start_date, 'UTC', 'Europe/Rome')   AS last_visit_date,
     /* 10  Scadenza idoneità                              */  le.expiration_date                                AS expiration_date,
 
     /* 11a / 11b  (immunological coverage – not tracked)  */  NULL                                              AS immuno_judgement,
-                                                            NULL                                              AS immuno_expiration,
+                                                              NULL                                              AS immuno_expiration,
 
     /* 12  Medico Competente                              */  CONCAT(u.name, ' ', u.surname)                    AS medico_competente,
     /* 13  Trasmissione al lavoratore                     */  le.transmission_date                              AS transmission_to_worker,
