@@ -22,7 +22,9 @@ WITH latest_exam AS (
 /*  FINAL SELECT                                                             */
 /* ------------------------------------------------------------------------- */
 SELECT
-    /*  1  Codice fiscale                                 */  p.fiscal_code                                     AS fiscal_code,
+	/*  0A Last Name									  */  p.surname AS last_name,
+	/*  0B First Name									  */  p.name AS first_name,
+    /*  1  Codice fiscale                                 */  p.fiscal_code                                      AS fiscal_code,
     /*  2  Mansione                                       */  d.description                                      AS mansione,
     /*  3  Tipologia                                      */  le.description                                     AS tipologia,
     /*  4  Periodicità visita                             */  d.base_periodicity                                 AS base_periodicity,
@@ -37,16 +39,92 @@ SELECT
 
     /*  7  Giudizio di idoneità                           */  le.result                                         AS result,
     /*  8  Prescrizioni / limitazioni                     */  le.prescription_to_company                        AS prescriptions,
-    /*  9  Data ultima visita                             */  CONVERT_TZ(le.start_date, 'UTC', 'Europe/Rome')   AS last_visit_date,
-    /* 10  Scadenza idoneità                              */  le.expiration_date                                AS expiration_date,
+    /*  9  Data ultima visita                             */  CONVERT_TZ(le.start_date, 'UTC', 'Europe/Rome')	AS last_visit_date,
+    
+    /* 10  Scadenza idoneità  */
+	CASE
+	  WHEN le.expiration_date IS NULL
+	     OR le.expiration_date = '0000-00-00'
+	     OR le.expiration_date = '0000-00-00 00:00:00'
+	  THEN (
+	     SELECT e2.expiration_date
+	     FROM examinations e2
+	     JOIN assumptions  a2 ON a2.id = e2.assumption_id
+	     WHERE a2.patient_id = a.patient_id
+	       AND e2.start_date < le.start_date
+	       AND e2.no_show = 0
+	       AND e2.expiration_date IS NOT NULL
+	       AND e2.expiration_date NOT IN ('0000-00-00', '0000-00-00 00:00:00')
+	     ORDER BY e2.start_date DESC, e2.id DESC
+	     LIMIT 1
+	  )
+	  ELSE le.expiration_date
+	END AS expiration_date,
 
     /* 11a / 11b  (immunological coverage – not tracked)  */  NULL                                              AS immuno_judgement,
                                                               NULL                                              AS immuno_expiration,
 
     /* 12  Medico Competente                              */  CONCAT(u.name, ' ', u.surname)                    AS medico_competente,
-    /* 13  Trasmissione al lavoratore                     */  le.transmission_date                              AS transmission_to_worker,
-    /* 14  Trasmissione al datore di lavoro               */  le.transmission_date                              AS transmission_to_employer,
-    /* 15  Data giudizio                                  */  le.result_file_date                               AS judgement_date,
+
+    /* 13  Trasmissione al lavoratore  */
+	CASE
+	  WHEN le.transmission_date IS NULL
+	     OR le.transmission_date = '0000-00-00'
+	     OR le.transmission_date = '0000-00-00 00:00:00'
+	  THEN (
+	     SELECT e2.transmission_date
+	     FROM examinations e2
+	     JOIN assumptions  a2 ON a2.id = e2.assumption_id
+	     WHERE a2.patient_id = a.patient_id
+	       AND e2.start_date < le.start_date
+	       AND e2.no_show = 0
+	       AND e2.transmission_date IS NOT NULL
+	       AND e2.transmission_date NOT IN ('0000-00-00', '0000-00-00 00:00:00')
+	     ORDER BY e2.start_date DESC, e2.id DESC
+	     LIMIT 1
+	  )
+	  ELSE le.transmission_date
+	END AS transmission_to_worker,
+
+    /* 14  Trasmissione al datore di lavoro  */
+	CASE
+	  WHEN le.transmission_date IS NULL
+	     OR le.transmission_date = '0000-00-00'
+	     OR le.transmission_date = '0000-00-00 00:00:00'
+	  THEN (
+	     SELECT e2.transmission_date
+	     FROM examinations e2
+	     JOIN assumptions  a2 ON a2.id = e2.assumption_id
+	     WHERE a2.patient_id = a.patient_id
+	       AND e2.start_date < le.start_date
+	       AND e2.no_show = 0
+	       AND e2.transmission_date IS NOT NULL
+	       AND e2.transmission_date NOT IN ('0000-00-00', '0000-00-00 00:00:00')
+	     ORDER BY e2.start_date DESC, e2.id DESC
+	     LIMIT 1
+	  )
+	  ELSE le.transmission_date
+	END AS transmission_to_employer,
+
+    /* 15  Data giudizio  */
+	CASE
+	  WHEN le.result_file_date IS NULL
+	     OR le.result_file_date = '0000-00-00'
+	     OR le.result_file_date = '0000-00-00 00:00:00'
+	  THEN (
+	     SELECT e2.result_file_date
+	     FROM examinations e2
+	     JOIN assumptions  a2 ON a2.id = e2.assumption_id
+	     WHERE a2.patient_id = a.patient_id
+	       AND e2.start_date < le.start_date
+	       AND e2.no_show = 0
+	       AND e2.result_file_date IS NOT NULL
+	       AND e2.result_file_date NOT IN ('0000-00-00', '0000-00-00 00:00:00')
+	     ORDER BY e2.start_date DESC, e2.id DESC
+	     LIMIT 1
+	  )
+	  ELSE le.result_file_date
+	END AS judgement_date,
 
     /* 16  Nome azienda (NEW)                             */  c.business_name                                   AS company_name,
     /* 17  Sede / filiale (NEW)                           */  o.name                                            AS office_location
@@ -75,8 +153,8 @@ WHERE     le.rn = 1
 /* ---------- only active assumptions -------------------------------------- */
 AND       a.end_date IS NULL 
 -- AND       p.fiscal_code IN ('BNCLCU80A01F205T', 'BNCNNA80A41H501R', 'RSSGNN85A01M208I')
-
-GROUP BY  p.id;
+GROUP BY  p.id
+ORDER BY  p.surname;
 
 /* ------------------------------------------------------------------------- */
 /*  If you want a richer “office_location” value, replace ‘o.name’ in the    *
