@@ -154,12 +154,14 @@ export const handler = async (_event, _context) => {
 
     // ── Handle comparison with previous version ───────────────────────────────
     let previousHashes = new Set();
+    let previousKeyUsed = null;
     if (compareVersion) {
       try {
         const key = `${compareVersion}.json`;
         const getRes = await s3.send(
           new GetObjectCommand({ Bucket: EXPORT_BUCKET, Key: key })
         );
+        previousKeyUsed = key;
         console.log("Fetched previous version object from S3", {
           bucket: EXPORT_BUCKET,
           key,
@@ -231,7 +233,7 @@ export const handler = async (_event, _context) => {
     };
 
     // Map the selected fields to the desired response schema and strip the helper hash.
-    const employeeDataList = changedRowsWithHash.map(({ _hash, ...row }) => ({
+    const employeeDataList = changedRowsWithHash.map(({ _hash, ...row }, i) => ({
       taxIdCode: row.fiscal_code,
       jobTitle: row.mansione,
       type: row.tipologia,
@@ -252,15 +254,22 @@ export const handler = async (_event, _context) => {
 
     // ── Persist current version to S3 for future comparisons ──────────────────
     if (changedRowsWithHash.length > 0) {
+      const previouslyProcessedRowsWithHash = rowsWithHash.filter((row) =>
+        previousHashes.has(row._hash)
+      );
+      const processedRowsWithHash = previouslyProcessedRowsWithHash.concat(
+        changedRowsWithHash
+      );
       const currentVersion = new Date().toISOString();
-      const putKey = `${currentVersion}.json`;
+      const saveVersion = previousKeyUsed ? compareVersion : currentVersion;
+      const putKey = previousKeyUsed ?? `${currentVersion}.json`;
       const putRes = await s3.send(
         new PutObjectCommand({
           Bucket: EXPORT_BUCKET,
           Key: putKey,
           Body: JSON.stringify({
-            version: currentVersion,
-            rows: changedRowsWithHash,
+            version: saveVersion,
+            rows: processedRowsWithHash,
           }),
           ContentType: "application/json",
         })
@@ -272,7 +281,7 @@ export const handler = async (_event, _context) => {
       // Return the formatted payload expected by the caller.
       return {
         employeeDataList,
-        currentVersion,
+        currentVersion: saveVersion,
         comparedTo: compareVersion,
         success: true,
         totalRows,
