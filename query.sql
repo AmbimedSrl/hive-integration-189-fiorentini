@@ -149,6 +149,7 @@ LEFT JOIN tests                t   ON t.id              = ed.test_id
 
 /* ---------- keep only the latest exam per employee ------------------------ */
 WHERE     le.rn = 1
+  AND (t.id < 101 OR t.id > 109) AND t.id <> 113
 
 /* ---------- only active assumptions -------------------------------------- */
 AND       a.end_date IS NULL 
