@@ -15,7 +15,7 @@ WITH latest_exam AS (
     FROM        examinations         e
     INNER JOIN  assumptions          a  ON a.id       = e.assumption_id
     INNER JOIN  offices              o  ON o.id       = a.office_id
-    WHERE       o.company_id = @company_id  AND e.deleted_at is NULL
+    WHERE       o.company_id = @company_id  AND e.deleted_at is NULL AND no_show = 0
 )
 
 /* ------------------------------------------------------------------------- */
