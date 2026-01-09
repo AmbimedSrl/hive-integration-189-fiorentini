@@ -25,7 +25,7 @@ SELECT
 	/*  0A Last Name									  */  p.surname AS last_name,
 	/*  0B First Name									  */  p.name AS first_name,
     /*  1  Codice fiscale                                 */  p.fiscal_code                                      AS fiscal_code,
-    /*  2  Mansione                                       */  d.description                                      AS mansione,
+    /*  2  Mansione                                       */  COALESCE(a.duty_alias, d.description)             AS mansione,
     /*  3  Tipologia                                      */  le.description                                     AS tipologia,
     /*  4  Periodicità visita                             */  d.base_periodicity                                 AS base_periodicity,
 
@@ -157,9 +157,3 @@ AND       a.end_date IS NULL
 -- AND       p.fiscal_code IN ('BNCLCU80A01F205T', 'BNCNNA80A41H501R', 'RSSGNN85A01M208I')
 GROUP BY  p.id
 ORDER BY  p.surname;
-
-/* ------------------------------------------------------------------------- */
-/*  If you want a richer “office_location” value, replace ‘o.name’ in the    *
- *  SELECT list with something like:                                         *
- *      CONCAT_WS(', ', o.address, o.zipcode, o.foreign_office_city)         *
- * ------------------------------------------------------------------------- */
