@@ -234,6 +234,8 @@ export const handler = async (_event, _context) => {
 
     // Map the selected fields to the desired response schema and strip the helper hash.
     const employeeDataList = changedRowsWithHash.map(({ _hash, ...row }, i) => ({
+      firstName: row.first_name,
+      lastName: row.last_name,
       taxIdCode: row.fiscal_code,
       jobTitle: row.mansione,
       type: row.tipologia,
