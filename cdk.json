@@ -1,0 +1,7 @@
+{
+  "app": "node bin/hive-fiorentini-export.mjs",
+  "context": {
+    "region": "eu-west-1",
+    "configSecretName": "hive-fiorentini-export/env"
+  }
+}

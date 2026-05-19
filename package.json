@@ -2,14 +2,24 @@
   "name": "ambimed-hive-lambda",
   "version": "1.0.0",
   "type": "module",
-  "main": "lambda/extractLatestExam.mjs",
+  "main": "index.mjs",
   "license": "MIT",
+  "scripts": {
+    "cdk": "cdk",
+    "synth": "cdk synth",
+    "check": "node --check index.mjs",
+    "test": "node --test"
+  },
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.537.0",
-    "@aws-sdk/rds-signer": "^3.537.0",
+    "@aws-sdk/client-dynamodb": "^3.1049.0",
+    "@aws-sdk/client-secrets-manager": "^3.1049.0",
     "@aws-sdk/client-s3": "^3.537.0",
-    "@smithy/protocol-http": "^5.1.2",
-    "@smithy/types": "^4.3.1",
-    "mysql2": "^3.14.2"
+    "mysql2": "^3.14.2",
+    "pino": "^9.7.0"
+  },
+  "devDependencies": {
+    "aws-cdk": "^2.198.0",
+    "aws-cdk-lib": "^2.198.0",
+    "constructs": "^10.4.2"
   }
 }
