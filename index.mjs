@@ -425,6 +425,12 @@ function toGmtIso(date) {
   return new Date(new Date(date).getTime() - 2 * 60 * 60 * 1000).toISOString();
 }
 
+function prescriptionForOic(value) {
+  if (value === null || value === undefined) return "-";
+  if (typeof value === "string" && value.trim() === "") return "-";
+  return value;
+}
+
 export function mapRowsToEmployees(rowsWithHash) {
   return rowsWithHash.map(({ _hash, ...row }) => ({
     firstName: row.first_name,
@@ -436,7 +442,7 @@ export function mapRowsToEmployees(rowsWithHash) {
     riskFactorsEvaluated: row.risk_factors,
     additionalExaminations: row.integrative_tests,
     fitnessJudgement: row.result,
-    prescriptionsLimitations: row.prescriptions,
+    prescriptionsLimitations: prescriptionForOic(row.prescriptions),
     lastVisitDateTime: toGmtIso(row.last_visit_date),
     fitnessExpirationDate: dateOnly(row.expiration_date),
     immunologicalCoverageStatus: row.immuno_judgement,

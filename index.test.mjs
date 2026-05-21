@@ -4,6 +4,7 @@ import {
   addHashes,
   computeHybridSnapshotRows,
   loadSecretEnv,
+  mapRowsToEmployees,
   parseOicResponse,
   prepareSql,
   resolveDryRun,
@@ -212,6 +213,20 @@ test("rowsToCsv writes headers and escapes CSV values", () => {
   assert.equal(
     csv,
     'name,note\nMario,"comma, quote "" and\nnewline"\nAnna,'
+  );
+});
+
+test("mapRowsToEmployees sends dash when prescriptions are blank", () => {
+  const mapped = mapRowsToEmployees([
+    { ...rows[0], prescriptions: "" },
+    { ...rows[0], prescriptions: null },
+    { ...rows[0], prescriptions: "   " },
+    { ...rows[0], prescriptions: "Limitazione carichi" },
+  ]);
+
+  assert.deepEqual(
+    mapped.map((row) => row.prescriptionsLimitations),
+    ["-", "-", "-", "Limitazione carichi"]
   );
 });
 
