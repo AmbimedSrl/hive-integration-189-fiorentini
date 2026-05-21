@@ -145,12 +145,13 @@ LEFT JOIN risks                r   ON r.id        = dr.risk_id
 
 /* ---------- integrative tests actually executed ------------------------- */
 LEFT JOIN examination_details  ed  ON ed.examination_id = le.id
+                                   AND ed.deleted_at IS NULL
 LEFT JOIN tests                t   ON t.id              = ed.test_id
+                                   AND (t.id < 101 OR t.id > 109)
+                                   AND t.id <> 113
 
 /* ---------- keep only the latest exam per employee ------------------------ */
 WHERE     le.rn = 1
-  AND (t.id < 101 OR t.id > 109) AND t.id <> 113
-  AND ed.deleted_at IS NULL
 
 /* ---------- only active assumptions -------------------------------------- */
 AND       a.end_date IS NULL 

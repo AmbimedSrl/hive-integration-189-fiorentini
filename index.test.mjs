@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   addHashes,
   computeHybridSnapshotRows,
@@ -202,6 +203,16 @@ test("prepareSql replaces only the company variable default value", () => {
   assert.match(sql, /^SET @company_id = 132;/);
   assert.match(sql, /company_id = @company_id/);
   assert.doesNotMatch(sql, /SET 132 = 132/);
+});
+
+test("query keeps visits without integrative tests", () => {
+  const sql = readFileSync(new URL("./query.sql", import.meta.url), "utf8");
+  const finalWhere = sql.slice(sql.indexOf("WHERE     le.rn = 1"));
+
+  assert.match(sql, /LEFT JOIN examination_details\s+ed\s+ON ed\.examination_id = le\.id\s+AND ed\.deleted_at IS NULL/);
+  assert.match(sql, /LEFT JOIN tests\s+t\s+ON t\.id\s+=\s+ed\.test_id\s+AND \(t\.id < 101 OR t\.id > 109\)\s+AND t\.id <> 113/);
+  assert.doesNotMatch(finalWhere, /\bt\.id\b/);
+  assert.doesNotMatch(finalWhere, /\bed\.deleted_at\b/);
 });
 
 test("rowsToCsv writes headers and escapes CSV values", () => {
